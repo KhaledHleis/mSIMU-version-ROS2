@@ -1,7 +1,9 @@
 from abc import abstractmethod
 import numpy as np
 
-class Target:
+from sim_core.metaclasses.simu_class import SIMU
+
+class Target(SIMU):
     
     @abstractmethod
     def calculate_field_at_position(self,position:np.ndarray)->np.ndarray:
