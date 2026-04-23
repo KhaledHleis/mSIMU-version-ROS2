@@ -19,4 +19,5 @@ class World:
     def __init__(self, name: str, target_array: List[Target]):
         self.target_array = target_array  # array of all targets in the simulation
         self.name = name
+        self.regional_magnetic_field = np.array([0, 0, 0],dtype=float)  # default value, can be set to something else later
         # self.clock = Clock()
