@@ -24,7 +24,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'world = simulation_ros2.world_node:main',
+            'MagSIMU = simulation_ros2.magnetic_simulation_node:main',
         ],
     },
 )

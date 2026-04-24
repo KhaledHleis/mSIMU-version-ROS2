@@ -4,7 +4,7 @@ from rclpy.node import Node
 
 
 # local ros imports
-from sim_interfaces.srv import DebugWorldName, CalculateField
+import sim_interfaces.srv
 
 # python packages
 import numpy as np
@@ -12,17 +12,17 @@ import numpy as np
 # local imports
 from sim_core.simu_objects.world import World
 
-class WorldNode(Node):
+class MagSIMUNode(Node):
     """ node to interact with the world, e.g. to spawn objects, get information about the world, etc. """
     world: World
     
     def __init__(self):
-        super().__init__('world_node')
+        super().__init__('mag_simu_node')
         # for testing purposes, we will initialize a world here
         self.world = World("world",[])
-        self.srv_world_name = self.create_service(DebugWorldName, 'world_name', self.world_name_callback)
-        self.srv_calculate_field = self.create_service(CalculateField, 'calculate_field', self.calculate_field_callback)
-        self.get_logger().info('WorldNode has been started.')
+        # here create a service that calculates the field recorded at a position (request: position, response: field,Clock_tick)
+        # here create a topic that publiches the clock tick of the world, so that other nodes can subscribe to it and know when to update their state
+        self.get_logger().info('MagSIMUNode has been started.')
     
     def calculate_field_callback(self, request, response):
         position = np.array([request.pos_x, request.pos_y, request.pos_z])
@@ -33,14 +33,8 @@ class WorldNode(Node):
         response.field_z = field[0,2]
         return response
 
-    def world_name_callback(self, request, response):
-        response.message = self.world.name
-        response.success = True
-        self.get_logger().info(f"Received request for world name. Responding with: {response.message}")
-        return response
-
 def main(args=None):
     rclpy.init(args=args)
-    world_node = WorldNode()
+    world_node = MagSIMUNode()
     rclpy.spin(world_node)
     rclpy.shutdown()
