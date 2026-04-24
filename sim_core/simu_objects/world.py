@@ -20,7 +20,9 @@ class World(SIMU, IWorld):
             B += target.calculate_field_at_position(position)
         return B
 
-    def __init__(self, name, target_array):
+    def __init__(self, name, target_array: List[ITarget],simulation_radius:int,regional_magnetic_field:np.ndarray):
+        super().__init__(name)
         self.target_array = target_array  # array of all targets in the simulation
-        self.name = name
+        self.simulation_radius = simulation_radius
+        self.regional_magnetic_field = regional_magnetic_field
         self.clock = Clock()

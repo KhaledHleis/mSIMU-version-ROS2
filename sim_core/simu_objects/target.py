@@ -2,8 +2,9 @@ from abc import abstractmethod
 import numpy as np
 
 from sim_core.metaclasses.simu_class import SIMU
+from interfaces.target_interface import ITarget
 
-class Target(SIMU):
+class Target(SIMU,ITarget):
     
     @abstractmethod
     def calculate_field_at_position(self,position:np.ndarray)->np.ndarray:
@@ -52,7 +53,8 @@ class Cable(Target):
         name: str,
         start_point: np.ndarray,
         end_point: np.ndarray,
-        current: float
+        current: float,
+        current_freq: float # WORK implement frequency
     ):
         self.name = name
         self.start_point = np.asarray(start_point, dtype=float)

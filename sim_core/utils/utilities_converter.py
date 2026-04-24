@@ -1,95 +1,142 @@
 import numpy as np
-def Absolute_position(parent_absolute_position, parent_heading, relative_position):
-    """
-    Convert a relative position to an absolute position in 3D space given a parent's 
-    absolute position and heading in the NED reference frame.
-    
-    This function transforms coordinates from a local reference frame (relative to a parent object)
-    to a global NED reference frame. It applies rotation about the z-axis (yaw/heading) and then 
-    translates by the parent's absolute position. Roll and pitch are assumed to be zero.
-    
-    Args:
-        parent_absolute_position (tuple or list): The (north, east, down) coordinates of the parent 
-            in the absolute/global NED reference frame.
-        parent_heading (float): The heading/yaw angle of the parent in radians. This is the 
-            rotation about the down-axis, measured clockwise from North when looking down.
-        relative_position (tuple or list): The (north, east, down) coordinates in the parent's local 
-            reference frame that need to be converted to absolute coordinates.
-    
-    Returns:
-        tuple: The (north, east, down) absolute position in the global NED reference frame.
-    """
-    import math
-    
-    # Extract coordinates (NED frame)
-    pn, pe, pd = parent_absolute_position
-    rn, re, rd = relative_position
-    
-    # Apply rotation transformation based on parent's heading (rotation about down-axis)
-    # In NED, heading is measured clockwise from North when looking down
-    # Rotation matrix for yaw (heading) in NED:
-    # n' = n*cos(ψ) + e*sin(ψ)
-    # e' = -n*sin(ψ) + e*cos(ψ)
-    # d' = d (unchanged)
-    rotated_n = rn * math.cos(parent_heading) + re * math.sin(parent_heading)
-    rotated_e = -rn * math.sin(parent_heading) + re * math.cos(parent_heading)
-    rotated_d = rd  # down-coordinate unchanged for rotation about down-axis
-    
-    # Translate by parent's absolute position
-    absolute_n = pn + rotated_n
-    absolute_e = pe + rotated_e
-    absolute_d = pd + rotated_d
-    
-    absolute_position = np.array([[absolute_n,absolute_e,absolute_d]])
-    
-    return absolute_position
+from pyproj import Transformer
 
-def convert_field_ned_to_body(field_ned, roll, pitch, yaw):
+def body_to_ned(parent_absolute_position, roll, pitch, yaw, relative_position):
     """
-    Convert a magnetic field vector from NED (world) frame to sensor body frame.
-    
-    In the body frame:
-    - x-axis points forward (along drone nose)
-    - y-axis points right (starboard)
-    - z-axis points down
-    
+    Convert a position vector from body frame to absolute NED frame.
+    Full Z-Y-X Euler rotation (yaw → pitch → roll) + translation.
+
     Args:
-        field_ned (np.ndarray): Magnetic field vector in NED frame [Bn, Be, Bd]
-        roll (float): Roll angle in radians (rotation about x-axis, positive right wing down)
-        pitch (float): Pitch angle in radians (rotation about y-axis, positive nose up)
-        yaw (float): Yaw/heading angle in radians (rotation about z-axis, positive clockwise from North)
+        parent_absolute_position : (3,) array-like  – [north, east, down] of parent in NED
+        roll                     : float            – rotation about x-axis (rad), positive right wing down
+        pitch                    : float            – rotation about y-axis (rad), positive nose up
+        yaw                      : float            – rotation about z-axis (rad), positive clockwise from North
+        relative_position        : (3,) array-like  – [north, east, down] in body frame
+
+    Returns:
+        np.ndarray (3,): absolute [north, east, down] in NED frame
+    """
+    cr, sr = np.cos(roll),  np.sin(roll)
+    cp, sp = np.cos(pitch), np.sin(pitch)
+    cy, sy = np.cos(yaw),   np.sin(yaw)
+
+    # R_body_to_NED  (transpose of NED-to-body)
+    R = np.array([
+        [ cp*cy,  sr*sp*cy - cr*sy,  cr*sp*cy + sr*sy],
+        [ cp*sy,  sr*sp*sy + cr*cy,  cr*sp*sy - sr*cy],
+        [-sp,     sr*cp,             cr*cp            ]
+    ])
+
+    return np.array(parent_absolute_position) + R @ np.array(relative_position)
+
+
+def ned_to_body(vector_ned, roll, pitch, yaw):
+    """
+    Rotate a free vector (field, velocity, …) from NED frame to body frame.
+    Full Z-Y-X Euler rotation (yaw → pitch → roll). No translation.
+
+    Args:
+        vector_ned : (3,) array-like – vector expressed in NED frame
+        roll       : float           – rotation about x-axis (rad), positive right wing down
+        pitch      : float           – rotation about y-axis (rad), positive nose up
+        yaw        : float           – rotation about z-axis (rad), positive clockwise from North
+
+    Returns:
+        np.ndarray (3,): same vector expressed in body frame
+    """
+    cr, sr = np.cos(roll),  np.sin(roll)
+    cp, sp = np.cos(pitch), np.sin(pitch)
+    cy, sy = np.cos(yaw),   np.sin(yaw)
+
+    # R_NED_to_body = R_roll @ R_pitch @ R_yaw
+    R = np.array([
+        [ cp*cy,          cp*sy,         -sp   ],
+        [ sr*sp*cy-cr*sy, sr*sp*sy+cr*cy, sr*cp],
+        [ cr*sp*cy+sr*sy, cr*sp*sy-sr*cy, cr*cp]
+    ])
+
+    return R @ np.array(vector_ned)
+
+
+
+def lld_to_ned_batch(input: np.ndarray, ref: np.ndarray) -> np.ndarray:
+    """
+    Convert GNSS coordinates (longitude, latitude, depth) to local Cartesian NED coordinates in meters.
+    
+    Parameters:
+    - input: np.ndarray, shape (N, 3), columns = [longitude, latitude, depth]
+    - ref: np.ndarray, shape (1, 3), reference point [longitude, latitude, depth]
     
     Returns:
-        np.ndarray: Magnetic field vector in body frame [Bx, By, Bz]
+    - np.ndarray of shape (N, 3), local coordinates in meters in NED frame [x_north, y_east, z_down]
     """
-    import numpy as np
+
+    # Validate input
+    assert input.ndim == 2 and input.shape[1] == 3, f"Input must be 2D with 3 columns, got {input.shape}"
+    assert ref.ndim == 2 and ref.shape == (1, 3), f"Reference must have shape (1,3), got {ref.shape}"
+
+    # Extract reference longitude, latitude, and depth
+    lon0, lat0, depth0 = ref[0]
+
+    # Setup a local ENU (East-North-Up) projection using pyproj
+    transformer = Transformer.from_crs(
+        "epsg:4326",  # WGS84 Lat/Lon
+        f"+proj=tmerc +lat_0={lat0} +lon_0={lon0} +k=1 +x_0=0 +y_0=0 +ellps=WGS84",  # Local tangent plane
+        always_xy=True
+    )
+
+    # Transform all points
+    x_enu = []  # East
+    y_enu = []  # North
+    for lon, lat, depth in input:
+        x, y = transformer.transform(lon, lat)
+        x_enu.append(x)
+        y_enu.append(y)
+    x_enu = np.array(x_enu)
+    y_enu = np.array(y_enu)
+
+    # Depth as z (positive down in both frames)
+    z_down = input[:, 2] - depth0
+
+    # Convert ENU to NED: NED = [N, E, D] = [y_enu, x_enu, z_down]
+    local_coords = np.stack([y_enu, x_enu, z_down], axis=1)
+
+    return local_coords
+
+
+def lld_to_ned(input: np.ndarray, ref: np.ndarray) -> np.ndarray:
+    """
+    Convert GNSS coordinates (longitude, latitude, depth) to local Cartesian NED coordinates in meters.
     
-    # Rotation matrix from NED to Body frame
-    # This is the standard aerospace rotation sequence: Yaw -> Pitch -> Roll (Z-Y-X Euler angles)
+    Parameters:
+    - input: np.ndarray, shape (1, 3), columns = [longitude, latitude, depth]
+    - ref: np.ndarray, shape (1, 3), reference point [longitude, latitude, depth]
     
-    cos_roll = np.cos(roll)
-    sin_roll = np.sin(roll)
-    cos_pitch = np.cos(pitch)
-    sin_pitch = np.sin(pitch)
-    cos_yaw = np.cos(yaw)
-    sin_yaw = np.sin(yaw)
-    
-    # R_NED_to_Body = R_roll * R_pitch * R_yaw
-    R = np.array([
-        [cos_pitch * cos_yaw,
-         cos_pitch * sin_yaw,
-         -sin_pitch],
-        
-        [sin_roll * sin_pitch * cos_yaw - cos_roll * sin_yaw,
-         sin_roll * sin_pitch * sin_yaw + cos_roll * cos_yaw,
-         sin_roll * cos_pitch],
-        
-        [cos_roll * sin_pitch * cos_yaw + sin_roll * sin_yaw,
-         cos_roll * sin_pitch * sin_yaw - sin_roll * cos_yaw,
-         cos_roll * cos_pitch]
-    ])
-    
-    # Transform the field vector
-    field_body = R @ field_ned.T
-    
-    return field_body
+    Returns:
+    - np.ndarray of shape (1, 3), local coordinates in meters in NED frame [x_north, y_east, z_down]
+    """
+
+    # Validate input
+    assert input.ndim == 2 and input.shape[1] == 3, f"Input must be 2D with 3 columns, got {input.shape}"
+    assert ref.ndim == 2 and ref.shape == (1, 3), f"Reference must have shape (1,3), got {ref.shape}"
+
+    # Extract reference longitude, latitude, and depth
+    lon0, lat0, depth0 = ref[0]
+
+    # Setup a local ENU (East-North-Up) projection using pyproj
+    transformer = Transformer.from_crs(
+        "epsg:4326",  # WGS84 Lat/Lon
+        f"+proj=tmerc +lat_0={lat0} +lon_0={lon0} +k=1 +x_0=0 +y_0=0 +ellps=WGS84",  # Local tangent plane
+        always_xy=True
+    )
+    lon,lat,depth = input.flatten()
+    # Transform all points
+    x, y = transformer.transform(lon, lat)
+
+    # Depth as z (positive down in both frames)
+    z = depth - depth0
+
+    # Convert ENU to NED: NED = [N, E, D] = [y_enu, x_enu, z_down]
+    local_coord = np.stack([y, x, z], axis=1)
+
+    return local_coord
