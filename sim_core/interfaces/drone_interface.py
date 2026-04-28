@@ -1,7 +1,8 @@
 from typing import List
 import numpy as np
-from sensor_interface import ISensor
-from world_interface import IWorld
+
+from sim_core.interfaces.sensor_interface import ISensor
+from sim_core.interfaces.world_interface import IWorld
 
 class IDrone():
     name: str

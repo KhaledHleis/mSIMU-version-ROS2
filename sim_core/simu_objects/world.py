@@ -6,7 +6,7 @@ from sim_core.metaclasses.simu_class import SIMU
 from sim_core.interfaces.world_interface import IWorld
 from sim_core.interfaces.target_interface import ITarget
 
-from mag_simu.sim_core.simu_objects.clock import Clock
+from sim_core.simu_objects.clock import Clock
 class World(SIMU, IWorld):
     name: str
     reference_point: np.ndarray

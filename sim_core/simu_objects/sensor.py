@@ -7,8 +7,8 @@ from sim_core.metaclasses.simu_class import SIMU
 
 # ? utilities
 from sim_core.utils.utilities_converter import (
-    Absolute_position,
-    convert_field_ned_to_body,
+    body_to_ned,
+    ned_to_body,
 )
 
 # ? interfaces
@@ -36,15 +36,17 @@ class Fluxgate(Sensor):
 
         # Get field in NED frame at sensor position
         field_ned = world.calculate_entire_field_at_position(
-            Absolute_position(
+            body_to_ned(
                 parent_drone.current_position.reshape(-1),
+                0,
+                0,
                 parent_drone.current_heading.reshape(-1),
                 self.relative_position.reshape(-1),
             )
         )
 
         # Convert from NED to body frame using drone's attitude
-        field_body = convert_field_ned_to_body(
+        field_body = ned_to_body(
             field_ned, 0, 0, parent_drone.current_heading  # yaw
         )
         self.magnetic_field = field_body
@@ -57,15 +59,17 @@ class Scalar(Sensor):
 
         # Get field in NED frame at sensor position
         field_ned = world.calculate_entire_field_at_position(
-            Absolute_position(
+            body_to_ned(
                 parent_drone.current_position.reshape(-1),
+                0,
+                0,
                 parent_drone.current_heading.reshape(-1),
                 self.relative_position.reshape(-1),
             )
         )
 
         # Convert from NED to body frame using drone's attitude
-        field_body = convert_field_ned_to_body(
+        field_body = ned_to_body(
             field_ned, 0, 0, parent_drone.current_heading  # yaw
         )
         self.total_magnetic_field = np.linalg.norm(field_body)

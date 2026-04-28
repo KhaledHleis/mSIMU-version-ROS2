@@ -137,6 +137,6 @@ def lld_to_ned(input: np.ndarray, ref: np.ndarray) -> np.ndarray:
     z = depth - depth0
 
     # Convert ENU to NED: NED = [N, E, D] = [y_enu, x_enu, z_down]
-    local_coord = np.stack([y, x, z], axis=1)
+    local_coord = np.stack([[y, x, z]], axis=1)
 
     return local_coord

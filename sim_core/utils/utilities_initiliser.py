@@ -1,13 +1,13 @@
 import numpy as np
 
-from simu_objects.target import Target,Cable,Dipole
-from simu_objects.sensor import Sensor,Fluxgate,Scalar
-from simu_objects.world import World
-from simu_objects.drone import Drone
+from sim_core.simu_objects.target import Target,Cable,Dipole
+from sim_core.simu_objects.sensor import Sensor,Fluxgate,Scalar
+from sim_core.simu_objects.world import World
+from sim_core.simu_objects.drone import Drone
 
 from typing import List
 
-from utilities_converter import *
+from sim_core.utils.utilities_converter import *
 
 # VERIF that all initialisers are working correctly
 # region helper functions
@@ -15,35 +15,37 @@ from utilities_converter import *
 def __initialise_targets (config_object,ref_lld)-> List[Target]:
     Target_array = []
     # import cables
-    for target_object in config_object["cables"]:
-        
-        name = target_object["name"]
-        start_long = target_object["starting_longitude"]
-        start_lat = target_object["starting_latitude"]
-        start_depth = target_object["starting_depth"]
-        end_long = target_object["ending_longitude"]
-        end_lat = target_object["ending_latitude"]
-        end_depth = target_object["ending_depth"]
-        current = target_object["current"]
-        freq = target_object["current_frequency"] 
-        
-        start_point = lld_to_ned(np.array([[start_long,start_lat,start_depth]]),ref_lld)
-        end_point = lld_to_ned(np.array([[end_long,end_lat,end_depth]]),ref_lld)
-        
-        Target_array.append(Cable(name,start_point,end_point,current,freq))
+    if("cables" in config_object):
+        for target_object in config_object["cables"]:
+            
+            name = target_object["name"]
+            start_long = target_object["starting_longitude"]
+            start_lat = target_object["starting_latitude"]
+            start_depth = target_object["starting_depth"]
+            end_long = target_object["ending_longitude"]
+            end_lat = target_object["ending_latitude"]
+            end_depth = target_object["ending_depth"]
+            current = target_object["current"]
+            freq = target_object["current_frequency"] 
+            
+            start_point = lld_to_ned(np.array([[start_long,start_lat,start_depth]]),ref_lld)
+            end_point = lld_to_ned(np.array([[end_long,end_lat,end_depth]]),ref_lld)
+            
+            Target_array.append(Cable(name,start_point,end_point,current,freq))
     # import dipoles
-    for target_object in config_object["dipoles"]:
+    if("dipoles" in config_object):
+        for target_object in config_object["dipoles"]:
+            
+            name = target_object["name"]
+            center_long = target_object["center_longitude"]
+            center_lat = target_object["center_latitude"]
+            center_depth = target_object["center_depth"]
+            moment = np.array(target_object["dipole_moment"])
+            
+            center_point = lld_to_ned(np.array([[center_long,center_lat,center_depth]]),ref_lld)
+            
+            Target_array.append(Dipole(name,center_point,moment))
         
-        name = target_object["name"]
-        center_long = target_object["center_longitude"]
-        center_lat = target_object["center_latitude"]
-        center_depth = target_object["center_depth"]
-        moment = np.array(target_object["dipole_moment"])
-        
-        center_point = lld_to_ned(np.array([[center_long,center_lat,center_depth]]),ref_lld)
-        
-        Target_array.append(Dipole(name,center_point,moment))
-    
     return Target_array
 
 def __initialise_sensors (config_object)-> List[Sensor]:
@@ -78,6 +80,8 @@ def __initialise_word (config_object)->World:
 def __initialise_drone (config_object)->Drone:
     config_drone = config_object["drone"]
     name = config_drone["name"]
+    if("sensors" not in config_object):
+        raise TypeError("a drone must have sensors")
     sensor_array = __initialise_sensors(config_object)
     return Drone(name,sensor_array)
 

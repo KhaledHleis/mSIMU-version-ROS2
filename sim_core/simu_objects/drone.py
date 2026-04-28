@@ -3,11 +3,11 @@ import numpy as np
 
 from sim_core.metaclasses.simu_class import SIMU
 
-from world import World
+from sim_core.simu_objects.world import World
+from sim_core.simu_objects.clock import Clock
 
 from sim_core.interfaces.sensor_interface import ISensor
 from sim_core.interfaces.drone_interface import IDrone
-from clock import Clock
 
 
 class Drone(SIMU,IDrone):

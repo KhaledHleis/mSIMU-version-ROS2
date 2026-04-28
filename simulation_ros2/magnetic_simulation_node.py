@@ -24,6 +24,7 @@ class MagSIMUNode(Node):
                         "name": "WT1",
                         "reference_longitude": -4.503754158369759,
                         "reference_latitude": 48.49209220724089,
+                        "reference_depth": 0,
                         "simulation_radius": 50,
                         "regional_magnetic_field": [21271, -100, 43023],
             },
@@ -40,7 +41,7 @@ class MagSIMUNode(Node):
                         "ending_depth": 1
                         }
             ],
-            "Drone":{
+            "drone":{
                         "name": "drone_cyclope",
                         
             },
@@ -49,6 +50,7 @@ class MagSIMUNode(Node):
             ]
         }
         self.experiment = Experiment(fake_object)
+        print(self.experiment)
         # here subscribe to the topic (drone path)
         self.sub_drone_path = self.create_subscription(sim_interfaces.msg.OdometryPath, 'drone_path', self.drone_path_callback, 100)
         self.get_logger().info('MagSIMUNode has been started.')

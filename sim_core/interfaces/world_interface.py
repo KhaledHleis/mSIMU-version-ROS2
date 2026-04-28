@@ -2,7 +2,7 @@ import numpy as np
 from typing import List
 
 from abc import abstractmethod
-from target_interface import ITarget
+from sim_core.interfaces.target_interface import ITarget
 
 class IWorld():
     reference_point: np.ndarray

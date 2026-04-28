@@ -2,7 +2,7 @@ from abc import abstractmethod
 import numpy as np
 
 from sim_core.metaclasses.simu_class import SIMU
-from interfaces.target_interface import ITarget
+from sim_core.interfaces.target_interface import ITarget
 
 class Target(SIMU,ITarget):
     

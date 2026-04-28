@@ -1,15 +1,15 @@
 from typing import Tuple, Optional
 import numpy as np
 
-from metaclasses.simu_class import SIMU
+from sim_core.metaclasses.simu_class import SIMU
 
-from interfaces.drone_interface import IDrone
-from interfaces.world_interface import IWorld
-from interfaces.sensor_interface import ISensor
-from interfaces.target_interface import ITarget
-from simu_objects.clock import Clock
+from sim_core.interfaces.drone_interface import IDrone
+from sim_core.interfaces.world_interface import IWorld
+from sim_core.interfaces.sensor_interface import ISensor
+from sim_core.interfaces.target_interface import ITarget
+from sim_core.simu_objects.clock import Clock
 
-from utils.utilities_initiliser import *
+from sim_core.utils.utilities_initiliser import *
 
 import time
 
