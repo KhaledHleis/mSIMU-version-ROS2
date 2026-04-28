@@ -1,0 +1,24 @@
+mag_simu_node:
+  ros__parameters:
+    experiment: '{"name": "bb_S90"}'
+    world: '{
+      "name": "WT1",
+      "reference_longitude": -4.503754158369759,
+      "reference_latitude": 48.49209220724089,
+      "reference_depth": 0,
+      "simulation_radius": 50,
+      "regional_magnetic_field": [21271, -100, 43023]
+    }'
+    cables: '[{
+      "name": "Cable_south",
+      "starting_longitude": -4.503827049110521,
+      "starting_latitude": 48.492313209033945,
+      "starting_depth": 1.5,
+      "current": 6,
+      "current_frequency": 0,
+      "ending_longitude": -4.50434496199812,
+      "ending_latitude": 48.49227909392259,
+      "ending_depth": 1
+    }]'
+    drone: '{"name": "drone_cyclope"}'
+    sensors: '[{"name": "sensor_UNO", "relative_position": [0, 0, 0], "type": "Fluxgate"}]'
