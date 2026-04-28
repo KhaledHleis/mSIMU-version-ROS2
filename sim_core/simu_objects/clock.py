@@ -8,19 +8,21 @@ class Clock(metaclass=Singleton):
     Keeps a global timestamp and applies a conversion factor
     when incrementing time.
 
-    timestamp is an integer in [ms] milliseconds,
-    and the conversion_factor that multiplies the increment value for example it could be the sampling rate x1000.
+    timestamp is an integer in [ns] nanoseconds,
     """
 
     def __init__(self):
-        self.__time_stamp: int = 0
-        self.conversion_factor: int = 1
+        self.__time: int = 0
 
-    def get_time_stamp(self) -> int:
-        return self.__time_stamp
+    #! getter and setter for time and delta_t
+    def get_time(self) -> int:
+        return self.__time
 
-    def increment_time(self, delta: int = 1):
-        self.__time_stamp += delta * self.conversion_factor
+    def set_time(self,time:int):
+        self.__time = time # time in ns
 
-    def set_conversion_factor(self, factor: int):
-        self.conversion_factor = factor
+    def get_delta_t(self) -> int:
+        return self.__delta_t
+
+    def set_delta_t(self, delta_t: int):
+        self.__delta_t = delta_t # delta_t in ns

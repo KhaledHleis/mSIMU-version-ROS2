@@ -9,11 +9,11 @@ class IDrone():
     world: IWorld
     sensor_array: List[ISensor]
     current_position: np.ndarray
-    current_heading: np.ndarray
+    current_rotation: np.ndarray # euler angles in radians, order: roll, pitch, yaw
     
     def update_current_data(self):
         pass
-    def update_position(self,long,lat,heading,depth = None):
+    def update_position(self,long,lat,rotation,depth = None):
         pass
     def __init__(self):
         pass

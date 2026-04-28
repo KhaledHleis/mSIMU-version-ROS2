@@ -14,15 +14,15 @@ class Drone(SIMU,IDrone):
     name: str
     sensor_array: List[ISensor]
     current_position: np.ndarray
-    current_heading: np.ndarray
+    current_rotation: np.ndarray
     clock: Clock
 
     def update_current_data(self):
         for sensor in self.sensor_array:
             c = sensor.make_measurement(self)
-    
-    def update_position(self, long, lat, heading, depth=None):
-        self.current_heading = heading
+
+    def update_position(self, long, lat, rotation, depth=None):
+        self.current_rotation = rotation
         self.current_position = np.array(
             [[long, lat, self.current_position[0, 2] if depth is None else depth]]
         )
