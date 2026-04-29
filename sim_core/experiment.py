@@ -18,18 +18,16 @@ class Experiment(SIMU):
     clock : Clock
     last_timestamp:int = 0
     
-    def update(self, input_path, time_array):
-        for point, timestamp in zip(input_path, time_array):
-            
-            self.clock.set_delta_t(timestamp - self.last_timestamp)
-            
-            long, lat, depth, roll, pitch, yaw = point            
-            rotation = np.array([[roll, pitch, yaw]])
-            self.drone.update_position(long, lat, rotation, depth=depth)
-            self.drone.update_current_data()
-            
-            self.clock.set_time(timestamp)
-            self.last_timestamp = timestamp
+    def update(self, input_point, timestamp):        
+        self.clock.set_delta_t(timestamp - self.last_timestamp)
+        
+        long, lat, depth, roll, pitch, yaw = input_point            
+        rotation = np.array([[roll, pitch, yaw]])
+        self.drone.update_position(long, lat, rotation, depth=depth)
+        self.drone.update_current_data()
+        
+        self.clock.set_time(timestamp)
+        self.last_timestamp = timestamp
 
     def get_measurements(self):  
         measurments_object = {}      
@@ -37,6 +35,16 @@ class Experiment(SIMU):
             # WORK: we can add the timestamp to the measurement object if needed, for now we will just return the measurements
             measurments_object[sensor.name] = sensor.measurement
         return measurments_object
+    
+    def batch_measurements_and_updates(self, input_path, time_array):
+        measurement_array = []
+        for input_point, timestamp in zip(input_path, time_array):
+            
+            self.update(input_point, timestamp)
+            measurement = self.get_measurements()
+            measurement_array.append(measurement)
+            
+        return measurement_array
 
     def __init__(self,config_obj):
         super().__init__(config_obj["experiment"]["name"])

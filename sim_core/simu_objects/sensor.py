@@ -37,17 +37,17 @@ class Fluxgate(Sensor):
         # Get field in NED frame at sensor position
         field_ned = world.calculate_entire_field_at_position(
             body_to_ned(
-                parent_drone.current_position.reshape(-1),
-                0,
-                0,
-                parent_drone.current_rotation.reshape(-1),
-                self.relative_position.reshape(-1),
+                parent_drone.current_position.flatten(),
+                parent_drone.current_rotation[0, 0],    # roll
+                parent_drone.current_rotation[0, 1],    # pitch
+                parent_drone.current_rotation[0, 2],     # yaw
+                self.relative_position.flatten(),
             )
         )
 
         # Convert from NED to body frame using drone's attitude
         field_body = ned_to_body(
-            field_ned, 
+            field_ned.flatten(), 
             parent_drone.current_rotation[0, 0],    # roll
             parent_drone.current_rotation[0, 1],    # pitch
             parent_drone.current_rotation[0, 2]     # yaw
@@ -63,17 +63,17 @@ class Scalar(Sensor):
         # Get field in NED frame at sensor position
         field_ned = world.calculate_entire_field_at_position(
             body_to_ned(
-                parent_drone.current_position.reshape(-1),
+                parent_drone.current_position.flatten(),
                 parent_drone.current_rotation[0, 0],    # roll
                 parent_drone.current_rotation[0, 1],    # pitch
                 parent_drone.current_rotation[0, 2],     # yaw
-                self.relative_position.reshape(-1),
+                self.relative_position.flatten(),
             )
         )
 
         # Convert from NED to body frame using drone's attitude
         field_body = ned_to_body(
-            field_ned, 
+            field_ned.flatten(), 
             parent_drone.current_rotation[0, 0],    # roll
             parent_drone.current_rotation[0, 1],    # pitch
             parent_drone.current_rotation[0, 2]     # yaw
