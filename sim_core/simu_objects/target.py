@@ -16,7 +16,7 @@ class Target(SIMU,ITarget):
             position (np.ndarray): absolute sensor position
 
         Returns:
-            np.ndarray: magnetic field vector or shape (1,3)
+            np.ndarray: magnetic field vector or shape (1,3) in [nT] at the given position
         """
         pass
     
@@ -62,6 +62,7 @@ class Cable(Target):
         self.current = current
 
     def calculate_field_at_position(self, position) -> np.ndarray:
+        
         position = np.asarray(position, dtype=float)
 
         R1 = position - self.start_point

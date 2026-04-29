@@ -28,9 +28,10 @@ def __initialise_targets (config_object,ref_lld)-> List[Target]:
             current = target_object["current"]
             freq = target_object["current_frequency"] 
             
+            print("<"*5,"Initialising cable with start long:", start_long, "and end point:", end_long, ">"*5)
             start_point = lld_to_ned(np.array([[start_long,start_lat,start_depth]]),ref_lld)
             end_point = lld_to_ned(np.array([[end_long,end_lat,end_depth]]),ref_lld)
-            
+            print("<"*5,"Initialising cable with start point:", start_point, "and end point:", end_point, ">"*5)
             Target_array.append(Cable(name,start_point,end_point,current,freq))
     # import dipoles
     if("dipoles" in config_object):
@@ -55,9 +56,9 @@ def __initialise_sensors (config_object)-> List[Sensor]:
         sensor_type = sensor["type"]
         relative_pos = np.array([sensor["relative_position"]])
         
-        if(sensor_type is "Fluxgate"):
+        if(sensor_type == "Fluxgate"):
             sensor_array.append(Fluxgate(name,relative_pos))
-        elif(sensor_type is "Scalar"):
+        elif(sensor_type == "Scalar"):
             sensor_array.append(Scalar(name,relative_pos))
         else:
             raise TypeError("sensor type does not exist")
@@ -83,9 +84,11 @@ def __initialise_drone (config_object)->Drone:
     if("sensors" not in config_object):
         raise TypeError("a drone must have sensors")
     sensor_array = __initialise_sensors(config_object)
-    return Drone(name,sensor_array)
+    return Drone(name,sensor_array,__initialise_word(config_object))
 
 # endregion
 
 def initialise_ALL (config_object)->tuple[World,Drone]:
-    return __initialise_word(config_object),__initialise_drone(config_object)
+    drone = __initialise_drone(config_object)
+    world = drone.world
+    return world,drone

@@ -27,7 +27,7 @@ def body_to_ned(parent_absolute_position, roll, pitch, yaw, relative_position):
         [-sp,     sr*cp,             cr*cp            ]
     ])
 
-    return np.array(parent_absolute_position) + R @ np.array(relative_position)
+    return (np.array(parent_absolute_position) + R @ np.array(relative_position)).reshape(-1,3)
 
 
 def ned_to_body(vector_ned, roll, pitch, yaw):
@@ -55,7 +55,7 @@ def ned_to_body(vector_ned, roll, pitch, yaw):
         [ cr*sp*cy+sr*sy, cr*sp*sy-sr*cy, cr*cp]
     ])
 
-    return R @ np.array(vector_ned)
+    return (R @ np.array(vector_ned)).reshape(-1,3)
 
 
 
@@ -137,6 +137,6 @@ def lld_to_ned(input: np.ndarray, ref: np.ndarray) -> np.ndarray:
     z = depth - depth0
 
     # Convert ENU to NED: NED = [N, E, D] = [y_enu, x_enu, z_down]
-    local_coord = np.stack([[y, x, z]], axis=1)
+    local_coord = np.stack([[y, x, z]], axis=0)
 
     return local_coord
