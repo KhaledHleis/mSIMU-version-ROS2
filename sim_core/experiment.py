@@ -36,7 +36,11 @@ class Experiment(SIMU):
             measurments_object[sensor.name] = sensor.measurement
         return measurments_object
     
-    def batch_measurements_and_updates(self, input_path, time_array):
+    def batch_measurements_and_updates(self, input_path, time_array, out_array=False):
+        """
+        Args:
+            out_array (bool, optional): output an array of measurments (array, sensor_names) instead of a list of objects. Defaults to False.
+        """
         measurement_array = []
         for input_point, timestamp in zip(input_path, time_array):
             
@@ -44,7 +48,24 @@ class Experiment(SIMU):
             measurement = self.get_measurements()
             measurement_array.append(measurement)
             
-        return measurement_array
+        if out_array:
+            result, sensors = transform_to_mn3(measurement_array)
+            return result, sensors
+        else:
+            return measurement_array
+    
+    def batch_CSV_updates(self, input_path, time_array):
+        csv_row = []
+        csv_row.append(["timestamp", "longitude", "latitude", "depth", "heading", "magx", "magy", "magz","mag"])
+        
+        for input_point, timestamp in zip(input_path, time_array):
+            self.update(input_point, timestamp)
+            long, lat,depth = self.drone.current_position.flatten()
+            heading = self.drone.current_rotation.flatten()[2]
+            magx, magy, magz = self.drone.sensor_array[0].measurement.flatten()
+            mag = np.linalg.norm([magx, magy, magz])
+            csv_row.append([timestamp, long, lat, depth, heading, magx, magy, magz, mag])
+        return csv_row
 
     def __init__(self,config_obj):
         super().__init__(config_obj["experiment"]["name"])

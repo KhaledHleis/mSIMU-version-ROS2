@@ -140,3 +140,37 @@ def lld_to_ned(input: np.ndarray, ref: np.ndarray) -> np.ndarray:
     local_coord = np.stack([[y, x, z]], axis=0)
 
     return local_coord
+
+
+def transform_to_mn3(data):
+    """
+    Transform a list of dicts like:
+        [{'sensor_A': array([[x,y,z]])}, {'sensor_B': array([[x,y,z]])}, ...]
+    into shape (M, N, 3)
+
+    M = number of sensors
+    N = number of instances per sensor
+    3 = components
+    """
+
+    # Collect sensor names
+    sensors = sorted({list(d.keys())[0] for d in data})
+    M = len(sensors)
+
+    # Group values by sensor
+    grouped = {sensor: [] for sensor in sensors}
+
+    for item in data:
+        for sensor, value in item.items():
+            grouped[sensor].append(np.asarray(value).reshape(3,))
+
+    # Number of instances
+    N = len(next(iter(grouped.values())))
+
+    # Build output array
+    result = np.zeros((M, N, 3))
+
+    for i, sensor in enumerate(sensors):
+        result[i] = np.vstack(grouped[sensor])
+
+    return result, sensors
