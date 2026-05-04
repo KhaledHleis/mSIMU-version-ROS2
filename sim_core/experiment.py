@@ -10,6 +10,7 @@ from sim_core.interfaces.target_interface import ITarget
 from sim_core.simu_objects.clock import Clock
 
 from sim_core.utils.utilities_initiliser import *
+from sim_core.utils.utilities_converter import ned_to_lld
 
 class Experiment(SIMU):
     
@@ -60,7 +61,7 @@ class Experiment(SIMU):
         
         for input_point, timestamp in zip(input_path, time_array):
             self.update(input_point, timestamp)
-            long, lat,depth = self.drone.current_position.flatten()
+            long, lat,depth = ned_to_lld(self.drone.current_position,self.world.reference_point).flatten()
             heading = self.drone.current_rotation.flatten()[2]
             magx, magy, magz = self.drone.sensor_array[0].measurement.flatten()
             mag = np.linalg.norm([magx, magy, magz])

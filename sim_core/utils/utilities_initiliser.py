@@ -76,7 +76,7 @@ def __initialise_word (config_object)->World:
     ref_lld = np.array([[ref_long,ref_lat,ref_depth]])
     target_array = __initialise_targets(config_object,ref_lld)
     
-    return World(name,target_array,simulation_radius,regional_field)
+    return World(name,target_array,simulation_radius,regional_field,ref_lld)
 
 def __initialise_drone (config_object)->Drone:
     config_drone = config_object["drone"]
