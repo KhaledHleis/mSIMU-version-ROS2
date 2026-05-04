@@ -52,6 +52,7 @@ class Fluxgate(Sensor):
             parent_drone.current_rotation[0, 1],    # pitch
             parent_drone.current_rotation[0, 2]     # yaw
         )
+        # print(">>> field measurement : ", field_body)
         self.measurement = field_body
         return field_body
 

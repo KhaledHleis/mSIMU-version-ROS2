@@ -10,6 +10,7 @@ from sim_core.interfaces.world_interface import IWorld
 from sim_core.interfaces.sensor_interface import ISensor
 from sim_core.interfaces.drone_interface import IDrone
 
+from sim_core.utils.utilities_converter import lld_to_ned
 
 class Drone(SIMU,IDrone):
     name: str
@@ -25,9 +26,9 @@ class Drone(SIMU,IDrone):
 
     def update_position(self, long, lat, rotation, depth=None):
         self.current_rotation = rotation
-        self.current_position = np.array(
+        self.current_position = lld_to_ned( np.array(
             [[long, lat, self.current_position[0, 2] if depth is None else depth]]
-        )
+        ),self.world.reference_point)
 
     def __init__(self, name,sensor_array: List[ISensor],world: IWorld):
         super().__init__(name)
