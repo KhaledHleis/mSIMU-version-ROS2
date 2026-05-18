@@ -47,8 +47,9 @@ class MagSIMUNode(Node):
         self.simple_plotter_init()
 
     def drone_path_callback(self, msg):
-        self.get_logger().info(f"Received drone path with {len(msg.poses)} poses.")
-
+        # self.get_logger().info(f"Received drone path with {len(msg.poses)} poses.")
+        # debug calculation time
+        start_time = self.get_clock().now()
         x_poses = []
         y_poses = []
         z_poses = []
@@ -83,6 +84,7 @@ class MagSIMUNode(Node):
         )
 
         measurements_array,sensor_names = self.experiment.batch_measurements_and_updates(path, times, out_array=True)
+        self.get_logger().info(f"calculation time: {(self.get_clock().now() - start_time).nanoseconds / 1e6:.2f} ms")
         self.simple_plotter_update(self.plotter,measurements_array, sensor_names)
 
 
