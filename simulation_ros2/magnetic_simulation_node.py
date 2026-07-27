@@ -2,14 +2,13 @@ import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import MagneticField
 
-from sim_interfaces.msg import OdometryPath
+from sim_interfaces.msg import OdometryPath, SensorMeasurements
 import json
 import numpy as np
 
 from sim_core.experiment import Experiment
 
 from scipy.spatial.transform import Rotation
-import matplotlib.pyplot as plt
 
 
 class MagSIMUNode(Node):
@@ -34,6 +33,10 @@ class MagSIMUNode(Node):
             "sensors": json.loads(self.get_parameter("sensors").value),
         }
 
+        # Optional realtime plot (off by default so the node is headless-safe).
+        self.declare_parameter("enable_plot", False)
+        self.enable_plot = bool(self.get_parameter("enable_plot").value)
+
         self.experiment = Experiment(config)
         self.get_logger().info(f"Experiment initialised: {self.experiment}")
 
@@ -41,10 +44,16 @@ class MagSIMUNode(Node):
             OdometryPath, "drone_path", self.drone_path_callback, 100
         )
 
-        self.pub_sensor_data = self.create_publisher(MagneticField, "sensor_data", 100)
+        # Structured table (one message per received path segment) that carries
+        # every sensor's magnetic field samples. This is what downstream
+        # detection / localisation nodes consume.
+        self.pub_sensor_data = self.create_publisher(
+            SensorMeasurements, "sensor_data", 100
+        )
 
         self.get_logger().info("MagSIMUNode has been started.")
-        self.simple_plotter_init()
+        if self.enable_plot:
+            self.simple_plotter_init()
 
     def drone_path_callback(self, msg):
         # self.get_logger().info(f"Received drone path with {len(msg.poses)} poses.")
@@ -83,42 +92,73 @@ class MagSIMUNode(Node):
             (x_poses, y_poses, z_poses, roll_rots, pitch_rots, yaw_rots), axis=1
         )
 
-        measurements_array,sensor_names = self.experiment.batch_measurements_and_updates(path, times, out_array=True)
-        self.get_logger().info(f"calculation time: {(self.get_clock().now() - start_time).nanoseconds / 1e6:.2f} ms")
-        self.simple_plotter_update(self.plotter,measurements_array, sensor_names)
+        # measurements_array shape: (M sensors, N samples, 3), sensor_names: (M,)
+        measurements_array, sensor_names = self.experiment.batch_measurements_and_updates(
+            path, times, out_array=True
+        )
+        self.get_logger().info(
+            f"calculation time: {(self.get_clock().now() - start_time).nanoseconds / 1e6:.2f} ms"
+        )
+        if self.enable_plot:
+            self.simple_plotter_update(self.plotter, measurements_array, sensor_names)
 
+        # ---- publish sensor data as a structured table --------------------
+        # One SensorMeasurements message carries, per sensor, the N magnetic
+        # field samples computed for the N poses in this path segment. The
+        # header stamp mirrors the incoming path so downstream nodes can align
+        # measurements with the drone poses that produced them.
+        self._publish_measurements(msg.header, measurements_array, sensor_names, times)
 
         # self.csv_manager(self.experiment.batch_CSV_updates(path, times)) #option to save csv data
 
-        # WORK put the output in the correct msg format
-        # publish sensor data as table
-        # self.get_logger().info(str(measurements_array))
+    def _publish_measurements(self, path_header, measurements_array, sensor_names, times):
+        """Publish one SensorMeasurements message per sensor for this segment."""
+        measurements_array = np.asarray(measurements_array)
+        if measurements_array.ndim != 3:
+            return
+        n_samples = measurements_array.shape[1]
+
+        for s_idx, name in enumerate(sensor_names):
+            out = SensorMeasurements()
+            out.header = path_header
+            out.sensor_name = str(name)
+
+            fields = []
+            for k in range(n_samples):
+                mf = MagneticField()
+                # per-sample timestamp (ns -> ROS time)
+                t_ns = int(times[k])
+                mf.header.stamp.sec = t_ns // 1_000_000_000
+                mf.header.stamp.nanosec = t_ns % 1_000_000_000
+                mf.header.frame_id = str(name)
+                bx, by, bz = np.asarray(measurements_array[s_idx, k]).reshape(3)
+                mf.magnetic_field.x = float(bx)
+                mf.magnetic_field.y = float(by)
+                mf.magnetic_field.z = float(bz)
+                fields.append(mf)
+
+            out.magnetic_field = fields
+            self.pub_sensor_data.publish(out)
 
     # region simple plotter
     def simple_plotter_init(self):
         """
-        Creates a realtime matplotlib plotter.
-        One subplot per sensor column.
+        Creates a realtime matplotlib plotter (lazy import, opt-in only).
         """
+        import matplotlib.pyplot as plt
+
         plt.ion()  # interactive mode ON
-
-        fig, axes = plt.subplots(nrows=1, ncols=1, figsize=(10, 6), squeeze=False)
-
-        plotter = {
-            "fig": fig,
-            "axes": axes.flatten(),
-            "lines": [],
+        self.plotter = {
             "initialized": False,
             "sensor_names": [],
         }
-
-        self.plotter = plotter
-        return plotter
+        return self.plotter
 
     def simple_plotter_update(self, plotter, measurements_array, sensor_names):
         """
         Appends new norm(data) values to the existing realtime plot.
         """
+        import matplotlib.pyplot as plt
 
         if measurements_array is None or len(measurements_array) == 0:
             return

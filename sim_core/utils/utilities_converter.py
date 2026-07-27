@@ -198,8 +198,9 @@ def transform_to_mn3(data):
     3 = components
     """
 
-    # Collect sensor names
-    sensors = sorted({list(d.keys())[0] for d in data})
+    # Collect sensor names (all keys of every sample, not just the first —
+    # required for multi-sensor / gradiometer configurations).
+    sensors = sorted({k for d in data for k in d.keys()})
     M = len(sensors)
 
     # Group values by sensor
