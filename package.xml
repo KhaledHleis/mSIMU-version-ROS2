@@ -3,9 +3,9 @@
 <package format="3">
   <name>simulation_ros2</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>ROS 2 package for cable following using magnetic field sensing</description>
   <maintainer email="khaledhleis003@gmail.com">root</maintainer>
-  <license>TODO: License declaration</license>
+  <license>MIT License</license>
 
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
